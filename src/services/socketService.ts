@@ -21,31 +21,15 @@ export class SocketService {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        let serverUrl: string;
-
-        if (process.env.NODE_ENV === 'production') {
-          // Use environment variable VITE_BACKEND_URL in production
-          serverUrl = process.env.VITE_BACKEND_URL || 'http://localhost:3001';
-        } else {
-          // Development environment or special environments like WebContainer
-          const hostname = window.location.hostname;
-          const protocol = 'ws:';
-
-          if (hostname.includes('webcontainer-api.io') || hostname.includes('stackblitz.io')) {
-            // WebContainer environment - replace frontend port with backend port
-            serverUrl = `${protocol}//${hostname.replace('-5173-', '-3001-')}`;
-          } else {
-            // Local development
-            serverUrl = 'http://localhost:3001';
-          }
-        }
+        // Use backend URL from environment variable
+        const serverUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
         this.socket = io(serverUrl, {
           transports: ['websocket', 'polling']
         });
 
         this.socket.on('connect', () => {
-          console.log('Connected to game server');
+          console.log('Connected to game server:', serverUrl);
           resolve();
         });
 
@@ -58,6 +42,7 @@ export class SocketService {
           console.log('Disconnected from game server');
         });
 
+        // Set up event listeners
         this.setupEventListeners();
 
       } catch (error) {
@@ -142,6 +127,7 @@ export class SocketService {
   private setupEventListeners(): void {
     if (!this.socket) return;
 
+    // Room events
     this.socket.on('roomCreated', (data) => {
       this.triggerCallbacks('roomCreated', data);
     });
@@ -162,6 +148,7 @@ export class SocketService {
       this.triggerCallbacks('joinError', error);
     });
 
+    // Game events
     this.socket.on('gameStarted', (gameState) => {
       this.triggerCallbacks('gameStarted', gameState);
     });
